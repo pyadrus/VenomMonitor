@@ -1,10 +1,15 @@
 import datetime
-
+import asyncio
 from aiogram import types
 
-from setting.bad_words import bad_words
 from system.dispatcher import dp, bot
 from system.sqlite import reading_data_from_the_database, writing_to_the_database_about_a_new_user
+
+"""
+Стиль текста для parse_mode="HTML", <code> - моноширинный, <b> - жирный, <i> - наклонный
+"""
+
+time_del = 60
 
 
 @dp.message_handler(content_types=types.ContentTypes.NEW_CHAT_MEMBERS)
@@ -21,6 +26,13 @@ async def deleting_message_about_adding_new_group_member(message: types.Message)
     name_table = "group_members_add"  # Имя таблицы в которую записываем данные
     writing_to_the_database_about_a_new_user(name_table, chat_id, chat_title, user_id, username, first_name, last_name,
                                              date_now)
+    # Отправляем сообщение в группу
+    await message.answer(f"<code>✅ Привет, {str(message.from_user.full_name)}</code>\n"
+                         "<code>Добро пожаловать в чат подружки.</code>\n"
+                         "<code>Чат создан для общения и встреч.</code>\n"
+                         "<code>Ознакомься, пожалуйста, с правилами чата.</code>\n"
+                         "<code>Если заскучала, предлагай встречу.</code>\n"
+                         "<code>Или приходи на те, которые предлагают девчонки в чате.</code>", parse_mode="HTML")
 
 
 @dp.message_handler(content_types=types.ContentTypes.LEFT_CHAT_MEMBER)
@@ -37,28 +49,6 @@ async def deleting_a_message_about_a_member_has_left_the_group(message: types.Me
     name_table = "group_members_left"  # Имя таблицы в которую записываем данные
     writing_to_the_database_about_a_new_user(name_table, chat_id, chat_title, user_id, username, first_name, last_name,
                                              date_left)
-
-
-@dp.message_handler(content_types=types.ContentTypes.STICKER)
-async def bot_message(message: types.Message) -> None:
-    """Удаление стикеров"""
-    # Если записанный id пользователя в боте записан, то сообщения пропускаются
-    data_dict = reading_data_from_the_database()
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-    print(f"message.from_user.id: {user_id}")
-    print(f"chat_id: {chat_id}, user_id: {user_id}")
-    if (message.chat.id, message.from_user.id) in data_dict:
-        print(f"{str(message.from_user.full_name)} отправил стикер в группу")
-    else:
-        await bot.delete_message(message.chat.id, message.message_id)  # Удаляем сообщение
-        """
-        Стиль текста для parse_mode="HTML", <code> - моноширинный, <b> - жирный, <i> - наклонный
-        """
-        # Отправляем сообщение в группу
-        await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
-                             f"<code>В чате запрещено отправлять стикеры, для получения разрешения напишите "
-                             f"админу</code> ➡️ @PyAdminRUS", parse_mode="HTML")
 
 
 @dp.message_handler(content_types=['text'])
@@ -79,89 +69,14 @@ async def del_link(message: types.Message) -> None:
                 pass
             else:
                 await bot.delete_message(message.chat.id, message.message_id)  # Удаляем сообщение
-                """
-                Стиль текста для parse_mode="HTML", <code> - моноширинный, <b> - жирный, <i> - наклонный
-                """
                 # Отправляем сообщение в группу
-                await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
-                                     f"<code>В чате запрещена публикация сообщений со ссылками, для получения "
-                                     f"разрешения напишите админу</code> ➡️ @PyAdminRUS", parse_mode="HTML")
+                warning = await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
+                                               "<code>В чате запрещена публикация сообщений со ссылками, при повторном "
+                                               "нарушении вы будете заблокированные на 24 часа</code>",
+                                               parse_mode="HTML")
+                await asyncio.sleep(int(time_del))  # Спим 20 секунд
+                await warning.delete()  # Удаляем предупреждение от бота
                 pass
-
-    # lower() — это строковый метод, который возвращает новую строку полностью в нижнем регистре
-    lower_message = message.text.lower()
-    for bad_word in bad_words:
-        if bad_word in lower_message:
-            # Если записанный id пользователя в боте записан, то сообщения пропускаются
-            data_dict = reading_data_from_the_database()
-            chat_id = message.chat.id
-            user_id = message.from_user.id
-            print(f"message.from_user.id: {user_id}")
-            print(f"chat_id: {chat_id}, user_id: {user_id}")
-            if (message.chat.id, message.from_user.id) in data_dict:
-                print(f"{str(message.from_user.full_name)} ругается в группе")
-                pass
-            else:
-                await message.delete()  # Удаляем сообщение
-                """
-                Стиль текста для parse_mode="HTML", <code> - моноширинный, <b> - жирный, <i> - наклонный
-                """
-                # Отправляем сообщение в группу
-                await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
-                                     f"<code>В чате запрещено ругаться и даже админу</code> ➡️ @PyAdminRUS",
-                                     parse_mode="HTML")
-
-
-@dp.message_handler(content_types=types.ContentTypes.ANY)
-async def handle_all_messages(message: types.Message) -> None:
-    """Удаляем пересылаемое сообщение"""
-    # Выводим тип сообщения в консоль
-    print(message.content_type)
-
-    """Пересылаемое сообщение"""
-    if message.forward_from:
-        # Если записанный id пользователя в боте записан, то сообщения пропускаются
-        data_dict = reading_data_from_the_database()
-        chat_id = message.chat.id
-        user_id = message.from_user.id
-        print(f"message.from_user.id: {user_id}")
-        print(f"chat_id: {chat_id}, user_id: {user_id}")
-        if (message.chat.id, message.from_user.id) in data_dict:
-            print(f"{str(message.from_user.full_name)} переслал сообщение")
-            pass
-        else:
-            await bot.delete_message(message.chat.id, message.message_id)  # Удаляем сообщение
-            """
-            Стиль текста для parse_mode="HTML", <code> - моноширинный, <b> - жирный, <i> - наклонный
-            """
-            # Отправляем сообщение в группу
-            await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
-                                 f"<code>В чате запрещены пересылаемые сообщения, для получения разрешения напишите "
-                                 f"админу</code> ➡️ @PyAdminRUS", parse_mode="HTML")
-            pass
-
-    if message.forward_from_chat:
-        # Если записанный id пользователя в боте записан, то сообщения пропускаются
-        data_dict = reading_data_from_the_database()
-        chat_id = message.chat.id
-        user_id = message.from_user.id
-        print(f"message.from_user.id: {user_id}")
-        print(f"chat_id: {chat_id}, user_id: {user_id}")
-        if (message.chat.id, message.from_user.id) in data_dict:
-            print(f"{str(message.from_user.full_name)} переслал сообщение")
-            pass
-        else:
-            await bot.delete_message(message.chat.id, message.message_id)  # Удаляем сообщение
-            """
-            Стиль текста для parse_mode="HTML", <code> - моноширинный, <b> - жирный, <i> - наклонный
-            """
-            # Отправляем сообщение в группу
-            await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
-                                 f"<code>В чате запрещены пересылаемые сообщения, для получения разрешения напишите "
-                                 f"админу</code> ➡️ @PyAdminRUS", parse_mode="HTML")
-            pass
-
-    """Сообщения с ссылками"""
 
     for cap in message.caption_entities:
         # url - обычная ссылка, text_link - ссылка, скрытая под текстом
@@ -177,21 +92,18 @@ async def handle_all_messages(message: types.Message) -> None:
                 pass
             else:
                 await bot.delete_message(message.chat.id, message.message_id)  # Удаляем сообщение
-                """
-                Стиль текста для parse_mode="HTML", <code> - моноширинный, <b> - жирный, <i> - наклонный
-                """
                 # Отправляем сообщение в группу
-                await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
-                                     f"<code>В чате запрещена публикация сообщений со ссылками, для получения "
-                                     f"разрешения напишите админу</code> ➡️ @PyAdminRUS", parse_mode="HTML")
+                warning = await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
+                                               "<code>В чате запрещена публикация сообщений со ссылками, при повторном "
+                                               "нарушении вы будете заблокированные на 24 часа</code>",
+                                               parse_mode="HTML")
+                await asyncio.sleep(int(time_del))  # Спим 20 секунд
+                await warning.delete()  # Удаляем предупреждение от бота
                 pass
 
 
 def bot_handlers():
     """Регистрируем handlers для всех пользователей"""
-    dp.register_message_handler(bot_message)
     dp.register_message_handler(deleting_message_about_adding_new_group_member)
     dp.register_message_handler(deleting_a_message_about_a_member_has_left_the_group)
     dp.register_message_handler(del_link)
-    dp.register_message_handler(handle_all_messages)
-
