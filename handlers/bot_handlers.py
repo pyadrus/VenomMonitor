@@ -6,7 +6,7 @@ from aiogram import types
 from aiogram.types import ChatPermissions
 from aiogram.utils.exceptions import BotBlocked
 from loguru import logger
-
+import re
 from system.dispatcher import dp, bot
 from system.sqlite import writing_to_the_database_about_a_new_user, write_user_to_database, delete_expired_users
 
@@ -64,51 +64,9 @@ data_dict = {}
 @dp.message_handler(content_types=['text'])
 async def del_link(message: types.Message) -> None:
     """Удаляем сообщения, содержащие ссылки и скрытые ссылки"""
-    for entity in message.entities:
-        # url - обычная ссылка, text_link - ссылка, скрытая под текстом
-        if entity.type in ["url", "text_link"]:
-            # Если записанный id пользователя в боте записан, то сообщения пропускаются
-            chat_id = message.chat.id
-            user_id = message.from_user.id
-            print(f"message.from_user.id: {user_id}")
-            print(f"chat_id: {chat_id}, user_id: {user_id}")
-            if (message.chat.id, message.from_user.id) in data_dict:
-                print(f"{str(message.from_user.full_name)} написал сообщение со ссылкой")
-                pass
-            else:
-                # Удаляем сообщение
-                await bot.delete_message(message.chat.id, message.message_id)
-                # Отправляем предупреждение пользователю
-                warning = await message.answer(f"<code>✅ {str(message.from_user.full_name)}</code>\n"
-                                               "<code>В чате запрещена публикация сообщений со ссылками, при повторном "
-                                               "нарушении вы будете заблокированные на 24 часа</code>",
-                                               parse_mode="HTML")
-                await asyncio.sleep(int(time_del))  # Спим 20 секунд
-                await warning.delete()  # Удаляем предупреждение от бота
-                # Записываем данные в базу данных
-                write_user_to_database(message.chat.id, message.from_user.id)
-                # Баним пользователя после второго предупреждения
-                if (message.chat.id, message.from_user.id) in warned_users:
-                    try:
-                        await bot.restrict_chat_member(chat_id=message.chat.id, user_id=message.from_user.id,
-                                                       permissions=ChatPermissions(),
-                                                       until_date=time.time() + 24 * 60 * 60)
-                        # Записываем данные о заблокированном пользователе в базу данных
-                        delete_expired_users(message.chat.id, message.from_user.id)
-                    except BotBlocked:
-                        # Если бот заблокирован в чате, необходимо обработать это исключение
-                        pass
-                    except Exception as e:
-                        logger.exception(e)
-                        print("[!] Произошла ошибка, для подробного изучения проблемы просмотрите файл log.log")
-                        pass
-                else:
-                    # Первое нарушение правил
-                    warned_users[(message.chat.id, message.from_user.id)] = True
-            return  # Выходим из обработчика после обнаружения ссылки
-    for cap in message.caption_entities:
-        # url - обычная ссылка, text_link - ссылка, скрытая под текстом
-        if cap.type in ["mention"]:
+    bad_words = "t.me"
+    for word in bad_words:
+        if word[0] in message.text.lower():
             # Если записанный id пользователя в боте записан, то сообщения пропускаются
             chat_id = message.chat.id
             user_id = message.from_user.id
