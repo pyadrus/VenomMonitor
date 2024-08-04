@@ -12,10 +12,8 @@ def main():
     """Запуск бота"""
     print(f"GreetingSentryBot запущен {date_now}")
     executor.start_polling(dp, skip_updates=True)
-    # Handlers - для админа и пользователей
-    admin_handlers()
-    # Handlers - только для бота
-    bot_handlers()
+    admin_handlers()  # Handlers - для админа и пользователей
+    bot_handlers()  # Handlers - только для бота
 
 
 if __name__ == "__main__":

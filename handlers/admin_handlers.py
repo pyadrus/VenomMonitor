@@ -13,9 +13,9 @@ class AddUserStates(StatesGroup):
     USER_ADDED = State()  # состояние, когда пользователь успешно добавлен в базу данных.
 
 
-# Игнорирование сообщений, когда состояние FSM = USER_ADDED
 @dp.message_handler(state=AddUserStates.USER_ADDED)
 async def ignore_messages(message: types.Message):
+    """Игнорирование сообщений, когда состояние FSM = USER_ADDED"""
     pass
 
 
@@ -31,17 +31,15 @@ info = '''
 '''
 
 
-# обработчик команды /start
 @dp.message_handler(commands=["start"])
 async def send_welcome(message: types.Message) -> None:
-    """Отвечаем на команду start"""
+    """Отвечаем на команду start (обработчик команды /start)"""
     await message.reply(info, parse_mode="HTML")
 
 
-# обработчик команды /help
 @dp.message_handler(commands=["help"])
 async def help_handler(message: types.Message) -> None:
-    """Отвечаем на команду help"""
+    """Отвечаем на команду help (обработчик команды /help)"""
     await message.reply(info, parse_mode="HTML")
 
 

@@ -6,7 +6,7 @@ from aiogram import types
 from aiogram.types import ChatPermissions
 from aiogram.utils.exceptions import BotBlocked
 from loguru import logger
-import re
+
 from system.dispatcher import dp, bot
 from system.sqlite import writing_to_the_database_about_a_new_user, write_user_to_database, delete_expired_users
 
